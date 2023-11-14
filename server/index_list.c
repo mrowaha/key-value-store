@@ -2,7 +2,21 @@
 #include<stdbool.h>
 #include<stdio.h>
 #include<stdlib.h>
+#include<error.h>
+#include<errno.h>
 #include"index_list.h"
+
+/**
+ * node struct for the sorted linked list index
+ * @offset: index of the node in the linked list
+ * @next: next node in the list
+ * @key: value of the node
+*/
+typedef struct index_node {
+  int offset;
+  struct index_node* next;
+  int key;
+} index_node;
 
 index_node* new_indexnode(void) {
   index_node* node = (index_node*)malloc(sizeof(index_node));
@@ -54,18 +68,18 @@ bool exists_key(index_list* indexlist, const int key) {
   return false;
 }
 
-bool insert_key(index_list* indexlist, const int key) {
+bool insert_key(index_list* indexlist, const int key, int* offset) {
   if (exists_key(indexlist, key)) return false;
+  *offset = 0;
   index_node* new_node = new_indexnode_with_key(key);
   if (indexlist->head == NULL) {
     indexlist->head = new_node;
-    indexlist->head->offset = 0;
+    indexlist->head->offset = *offset;
   } else {
     /* the index is sorted */
     index_node* curr = indexlist->head, *prev = NULL;
-    int offset = 0;
     while(curr != NULL && curr->key < key) {
-      offset++;
+      *offset = (*offset) + 1;
       prev = curr;
       curr = curr->next;
     }
@@ -82,7 +96,7 @@ bool insert_key(index_list* indexlist, const int key) {
       new_node->next = curr;
       prev->next = new_node;
     }
-    new_node->offset = offset;
+    new_node->offset = *offset;
   } 
   indexlist->size++; 
   return true;
@@ -98,6 +112,43 @@ void print_indexlist(const index_list* indexlist) {
   }
   printf("]\n");
 } 
+
+bool load_bin(index_list* indexlist, const char* filename, const size_t blocksize) {
+  if (indexlist == NULL) {
+    fprintf(stderr, "load_bin: index list cannot be null");
+    return false;
+  }
+
+  errno = 0;
+  FILE* bin_file_ptr = fopen(filename, "rb");
+  if (bin_file_ptr == NULL) {
+    perror("fopen:");
+    return false;
+  }
+  // read until end of file
+  void* temp = malloc(sizeof(blocksize));
+  while(fread(temp, sizeof(blocksize), 1, bin_file_ptr) == 1) {
+    // read the dataitem blocks one by one
+    // get the key and insert it
+    int* key = (int*)temp;
+    int offset;
+    insert_key(indexlist, *key, &offset);
+  }
+  free(temp);
+  fclose(bin_file_ptr);
+  return true;
+}
+
+int get_offset(index_list* indexlist, const int key) {
+  if (indexlist->head == NULL) return -1;
+  index_node* curr = indexlist->head;
+  while (curr != NULL) {
+    if (curr->key == key) {
+      return curr->offset;
+    }
+  }  
+  return -1;
+}
 
 void free_indexlist(index_list* indexlist) {
   if (indexlist->head) {

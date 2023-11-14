@@ -1,17 +1,13 @@
+#ifndef INDEX_LIST_0x123
+#define INDEX_LIST_0x123
+
 #include<stddef.h>
 #include<stdbool.h>
 
 /**
- * node struct for the sorted linked list index
- * @offset: index of the node in the linked list
- * @next: next node in the list
- * @key: value of the node
+ * element of the index list
 */
-typedef struct index_node {
-  int offset;
-  struct index_node* next;
-  int key;
-} index_node;
+struct index_node;
 
 /**
  * list struct for the index
@@ -20,7 +16,7 @@ typedef struct index_node {
 */
 typedef struct {
   int size;
-  index_node* head;
+  struct index_node* head;
 } index_list;
 
 
@@ -30,15 +26,26 @@ index_list* new_indexlist(void);
  * loads an index based on the datastore keys
  * @filename: filename of the data file
  * @blocksize: size of one dataitem in the datastore
+ * the caller must ensure that the dataitem structs must have the key as their first attribute
+ * for example, struct dataitem { int key; int value; } is valid
+ * but, struct dataitem {int value; int key; } is not valid
 */
-void load_bin(const char* filename, const size_t blocksize);
+bool load_bin(index_list*, const char* filename, const size_t blocksize);
 
 /**
  * insert key to the index
  * @return false if the key already exists else returns true
 */
-bool insert_key(index_list* indexlist, const int key);
+bool insert_key(index_list* indexlist, const int key, int* offset);
+
+/**
+ * get offset of the key
+ * @return key offset or -1 if key does not exist
+*/
+int get_offset(index_list* indexlist, const int key);
 
 void print_indexlist(const index_list*);
 
 void free_indexlist(index_list*);
+
+#endif

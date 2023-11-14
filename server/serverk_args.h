@@ -1,3 +1,5 @@
+#ifndef SERVER_ARGS_0x123
+#define SERVER_ARGS_0x123
 
 #include<stddef.h>
 #include<stdbool.h>
@@ -30,3 +32,5 @@ void free_cmdargs(cmd_args*);
 void print_cmdargs(cmd_args*);
 
 bool validate_cmdargs(cmd_args*, const int argc, const char* argv[]);
+
+#endif

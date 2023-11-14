@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "unistd.h": "c",
+    "dataset_mng.h": "c"
+  }
+}

@@ -31,4 +31,4 @@ client-leak:
 	valgrind --leak-check=yes ./clientk -f $(FNAME) -m $(MQNAME) -s $(VSIZE) -n $(CLICOUNT) -d $(DLEVEL)
 
 clean:
-	rm -f serverk clientk
+	rm -f serverk clientk ./data/*
