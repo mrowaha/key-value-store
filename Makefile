@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -I./shared
 .DEFAULT_GOAL=build
 
 DCOUNT=5
@@ -13,7 +13,7 @@ FNAME=./data/dataset
 MQNAME=mqueue
 
 server-build: 
-	$(CC) ./server/*.c -o ./bin/serverk $(CFLAGS)
+	$(CC) ./server/*.c ./shared/*.c -o ./bin/serverk $(CFLAGS)
 
 server-run:
 	./bin/serverk -d $(DCOUNT) -t $(TCOUNT) -s $(VSIZE) -m $(MQNAME) -f $(FNAME)
