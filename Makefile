@@ -1,5 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -g -I./shared
+SFLAGS=-I./server/include
 .DEFAULT_GOAL=all
 
 DCOUNT=5
@@ -15,7 +16,7 @@ MQNAME=mqueue
 all: server-build client-build
 
 server-build: 
-	$(CC) ./server/*.c ./shared/*.c -o ./bin/serverk $(CFLAGS)
+	$(CC) ./server/*.c ./shared/*.c -o ./bin/serverk $(CFLAGS) $(SFLAGS)
 
 server-run:
 	./bin/serverk -d $(DCOUNT) -t $(TCOUNT) -s $(VSIZE) -m $(MQNAME) -f $(FNAME)

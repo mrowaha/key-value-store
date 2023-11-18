@@ -19,41 +19,18 @@ int main(const int argc, const char* argv[]) {
   print_cmdargs(args);
   #endif
 
-  // dataset_mng* dbmng = new_datasetmng(
-  //   args->fname,
-  //   args->dcount,
-  //   args->vsize
-  // );
-  // int dataset;
-  // write_dataitem(dbmng, 20, "THIS", &dataset);
-  // write_dataitem(dbmng, 20, "THIS", &dataset);
-  // write_dataitem(dbmng, 20, "THIS", &dataset);
-  // print_dataset(dbmng, 1);
-  // free_datasetmng(dbmng);  
-  // free_cmdargs(args);
-
-  message_parser* parser = new_message_parser(args->vsize);
-  void* request_msg;
-  {
-    char* value = (char*)malloc((sizeof(char) * args->vsize)); 
-    strcpy(value, "HELO");
-    int key = 2;
-    int method = DEL_int;
-    request_msg = new_request_msg(parser, key, method, value);
-    free(value);
-  }
-
-  int key;
-  int method;
-  char* value = decode_request_msg(parser, request_msg, &key, &method);
-  printf("key: %d\n", key);
-  char* method_str = method_int_to_str(method);
-  printf("method: %s\n", method_str);
-  printf("value: %s\n", value);
-  if (method_str) free(method_str);
-  if (value) free(value);
-  free(request_msg);
-  free_message_parser(parser);
+  dataset_mng* dbmng = new_datasetmng(
+    args->fname,
+    args->dcount,
+    args->vsize
+  );
+  int dataset;
+  write_dataitem(dbmng, 20, "THIS", &dataset);
+  write_dataitem(dbmng, 20, "THIS", &dataset);
+  write_dataitem(dbmng, 20, "THIS", &dataset);
+  print_dataset(dbmng, 1);
+  free_datasetmng(dbmng);  
   free_cmdargs(args);
+
   return EXIT_SUCCESS;
 }
