@@ -12,7 +12,7 @@
 
 int main(const int argc, const char* argv[]) {
   cmd_args* args = new_cmdargs();
-  if (!validate_cmdargs(args, argc, argv)) {
+  if (!validate_cmdargs(args, argc, argv, true)) {
     return EXIT_FAILURE;
   }  
   #ifdef DEBUG
@@ -25,10 +25,17 @@ int main(const int argc, const char* argv[]) {
     args->vsize
   );
   int dataset;
-  write_dataitem(dbmng, 20, "THIS", &dataset);
-  write_dataitem(dbmng, 20, "THIS", &dataset);
-  write_dataitem(dbmng, 20, "THIS", &dataset);
-  print_dataset(dbmng, 1);
+  write_dataitem(dbmng, 20, "THIS23awawra", &dataset);
+  write_dataitem(dbmng, 20, "THIS23asfasfsad", &dataset);
+  write_dataitem(dbmng, 20, "THIS23swfaf", &dataset);
+  print_dataset(dbmng, dataset);
+
+  write_dataitem(dbmng, 21, "1234", &dataset);
+  write_dataitem(dbmng, 21, "12345678", &dataset);
+  write_dataitem(dbmng, 21, "1234567890", &dataset);
+  write_dataitem(dbmng, 21, "1234567890102", &dataset);
+  print_dataset(dbmng, dataset);
+
   free_datasetmng(dbmng);  
   free_cmdargs(args);
 

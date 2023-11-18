@@ -9,7 +9,7 @@ TCOUNT=2
 CLICOUNT=2
 DLEVEL=1
 
-VSIZE=5
+VSIZE=10
 FNAME=./data/dataset
 MQNAME=mqueue
 

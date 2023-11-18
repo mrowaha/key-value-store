@@ -35,7 +35,7 @@ void print_cmdargs(cmd_args* args) {
 }
 
 
-bool validate_cmdargs(cmd_args* process_args, const int argc, const char* argv[]) {
+bool validate_cmdargs(cmd_args* process_args, const int argc, const char* argv[], const bool inc_vsize) {
   bool hasDCount = false;
   bool hasTCount = false;
   bool hasVSize = false;
@@ -76,6 +76,7 @@ bool validate_cmdargs(cmd_args* process_args, const int argc, const char* argv[]
         return false;
       }
       size_t vsize = atoi(argv[i+1]);
+      if (inc_vsize) vsize++;
       process_args->vsize = vsize;
       hasVSize = true;
     } else if (strcmp(argv[i], "-f") == 0) {

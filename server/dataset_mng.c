@@ -9,6 +9,8 @@
 
 #include"dataset_mng.h"
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+
 #define DEBUG
 
 dataset_mng* new_datasetmng(const char* fname, const int dcount, const size_t vsize) {
@@ -78,9 +80,6 @@ void make_datasets(const dataset_mng* dbmng) {
 }
 
 bool write_dataitem(const dataset_mng* dbmng, const int key, const char* value, int* dataset) {
-  /**
-   * first seeks the end of the file using the footer
-  */
   if (key <= 0) {
     fprintf(stderr, "write_dataitem: key can only be a positive nonzero integer");
     return false;
@@ -104,7 +103,9 @@ bool write_dataitem(const dataset_mng* dbmng, const int key, const char* value, 
 
   struct dataitem item;
   item.key = key;
-  strcpy(item.value, value);
+  memset(item.value, '\0', dbmng->vsize);
+  strncpy(item.value, value, min(dbmng->vsize, strlen(value)));
+  item.value[dbmng->vsize-1] = '\0';
 
   struct dataitem* newmap = mmap(NULL, new_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (newmap == MAP_FAILED) {
@@ -137,7 +138,7 @@ void print_dataset(const dataset_mng* dbmng, const int dataset) {
   int mmaplength = dbmng->sizes[dbindex] / sizeof(struct dataitem);
   printf("dataset %d: [\n", dataset);
   for (int i = 0; i < mmaplength; i++) {
-    printf("{ %d : %s }\n", datasetmap[i].key, datasetmap[i].value);    
+    printf("{ %d : %s (vsize: %ld) }\n", datasetmap[i].key, datasetmap[i].value, sizeof(datasetmap[i].value));    
   } 
   printf("]\n");
 }

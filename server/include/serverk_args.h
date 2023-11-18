@@ -31,6 +31,6 @@ void free_cmdargs(cmd_args*);
 
 void print_cmdargs(cmd_args*);
 
-bool validate_cmdargs(cmd_args*, const int argc, const char* argv[]);
+bool validate_cmdargs(cmd_args*, const int argc, const char* argv[], const bool inc_vsize);
 
 #endif
