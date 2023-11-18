@@ -1,5 +1,5 @@
 #include<string.h>
-#include"message.h"
+#include"message_parser.h"
 
 typedef struct message_parser {
   size_t vsize;
@@ -117,8 +117,6 @@ void* new_request_msg(const message_parser* parser, const int key, const int met
   msg->key = key;
   msg->method = method;
   if (value != NULL && method == PUT_int) {
-    // the rest of the message must be filled up with null characters
-    // if length of value is less than parser vsize
     strcpy(msg->value, value);
   } else {
     memset(msg->value, '\0', vsize);

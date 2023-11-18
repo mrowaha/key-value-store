@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -g -I./shared
-.DEFAULT_GOAL=build
+.DEFAULT_GOAL=all
 
 DCOUNT=5
 TCOUNT=2
@@ -12,6 +12,8 @@ VSIZE=5
 FNAME=./data/dataset
 MQNAME=mqueue
 
+all: server-build client-build
+
 server-build: 
 	$(CC) ./server/*.c ./shared/*.c -o ./bin/serverk $(CFLAGS)
 
@@ -22,7 +24,7 @@ server-leak:
 	valgrind --leak-check=yes ./bin/serverk -d $(DCOUNT) -t $(TCOUNT) -s $(VSIZE) -m $(MQNAME) -f $(FNAME)
 
 client-build:
-	$(CC) clientk_args.c clientk.c -o clientk $(CFLAGS)
+	$(CC) ./client/*.c ./shared/*.c -o ./bin/clientk $(CFLAGS)
 
 client-run:
 	./clientk -f $(FNAME) -m $(MQNAME) -s $(VSIZE) -n $(CLICOUNT) -d $(DLEVEL)
