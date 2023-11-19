@@ -76,17 +76,30 @@ void make_datasets(const dataset_mng *dbmng)
 {
   int size;
   char *filename = make_dataset_prefix(dbmng->fname, dbmng->dcount, &size);
+  struct stat sb;
   for (int i = 1; i <= dbmng->dcount; i++)
   {
     sprintf(filename, "%s%d.bin", dbmng->fname, i);
-    dbmng->descriptors[i - 1] = open(filename, O_RDWR | O_CREAT);
-    struct stat sb;
-    if (fstat(dbmng->descriptors[i - 1], &sb) == -1)
+    // int fd = open(filename, O_RDWR | O_CREAT);
+    FILE *file = fopen(filename, "r+b");
+    if (file == NULL)
+    {
+      file = fopen(filename, "w+b");
+    }
+    if (file == NULL)
+    {
+      perror("make_datasets");
+      exit(1);
+    }
+
+    int fd = fileno(file);
+    if (fstat(fd, &sb) == -1)
     {
       perror("make_datasets: could not get file size");
     }
-    dbmng->mmaps[i - 1] = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, dbmng->descriptors[i - 1], 0);
-    // mmap may fail for an empty fail initially
+    printf("file size %ld\n", sb.st_size);
+    dbmng->descriptors[i - 1] = fd;
+    dbmng->mmaps[i - 1] = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     dbmng->sizes[i - 1] = sb.st_size;
   }
   free(filename);
