@@ -1,16 +1,6 @@
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
+## This example demonstrates how index builder builds around the dataset manager and retrieving values by offsets
 
-#include "serverk_args.h"
-#include "index_list.h"
-#include "dataset_mng.h"
-#include "index_builder.h"
-#include "message_parser.h"
-
-#define DEBUG
-
+```
 int main(const int argc, const char *argv[])
 {
   cmd_args *args = new_cmdargs();
@@ -58,3 +48,4 @@ int main(const int argc, const char *argv[])
 
   return EXIT_SUCCESS;
 }
+```

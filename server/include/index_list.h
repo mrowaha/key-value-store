@@ -23,16 +23,6 @@ typedef struct
 index_list *new_indexlist(void);
 
 /**
- * loads an index based on the datastore keys
- * @filename: filename of the data file
- * @blocksize: size of one dataitem in the datastore
- * the caller must ensure that the dataitem structs must have the key as their first attribute
- * for example, struct dataitem { int key; int value; } is valid
- * but, struct dataitem {int value; int key; } is not valid
- */
-bool load_bin(index_list *, const char *filename, const size_t blocksize);
-
-/**
  * insert key to the index
  * @return false if the key already exists else returns true
  */

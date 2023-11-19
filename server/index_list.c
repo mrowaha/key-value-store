@@ -140,36 +140,6 @@ void print_indexlist(const index_list *indexlist)
   printf("]\n");
 }
 
-bool load_bin(index_list *indexlist, const char *filename, const size_t blocksize)
-{
-  if (indexlist == NULL)
-  {
-    fprintf(stderr, "load_bin: index list cannot be null");
-    return false;
-  }
-
-  errno = 0;
-  FILE *bin_file_ptr = fopen(filename, "rb");
-  if (bin_file_ptr == NULL)
-  {
-    perror("fopen:");
-    return false;
-  }
-  // read until end of file
-  void *temp = malloc(sizeof(blocksize));
-  while (fread(temp, sizeof(blocksize), 1, bin_file_ptr) == 1)
-  {
-    // read the dataitem blocks one by one
-    // get the key and insert it
-    int *key = (int *)temp;
-    int offset;
-    insert_key(indexlist, *key, &offset);
-  }
-  free(temp);
-  fclose(bin_file_ptr);
-  return true;
-}
-
 int get_offset(index_list *indexlist, const int key)
 {
   if (indexlist->head == NULL)

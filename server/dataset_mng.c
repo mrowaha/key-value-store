@@ -11,7 +11,8 @@
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-#define DEBUG
+// enable to log debugs to console
+// #define DEBUG
 
 dataset_mng *new_datasetmng(const char *fname, const int dcount, const size_t vsize)
 {
