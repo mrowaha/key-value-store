@@ -261,7 +261,7 @@ void *responserunner(void *workerargs)
       else
       {
         delete_dataitem(dbmng, thread_request.key, result.offset, result.dataset);
-        printb_indexlist(idxbuilder, thread_request.key);
+        deleteb_key(idxbuilder, thread_request.key);
         success = true;
         value = NULL;
       }
