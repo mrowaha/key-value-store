@@ -151,6 +151,7 @@ int get_offset(index_list *indexlist, const int key)
     {
       return curr->offset;
     }
+    curr = curr->next;
   }
   return -1;
 }
