@@ -1,136 +1,167 @@
-#include<stdint.h>
-#include<stdbool.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<error.h>
-#include<errno.h>
-#include"index_list.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <error.h>
+#include <errno.h>
+#include "index_list.h"
 
 /**
  * node struct for the sorted linked list index
  * @offset: index of the node in the linked list
  * @next: next node in the list
  * @key: value of the node
-*/
-typedef struct index_node {
+ */
+typedef struct index_node
+{
   int offset;
-  struct index_node* next;
+  struct index_node *next;
   int key;
 } index_node;
 
-index_node* new_indexnode(void) {
-  index_node* node = (index_node*)malloc(sizeof(index_node));
+index_node *new_indexnode(void)
+{
+  index_node *node = (index_node *)malloc(sizeof(index_node));
   node->next = NULL;
   node->offset = -1;
   node->key = -1;
   return node;
 }
 
-index_node* new_indexnode_with_key(const int key) {
-  index_node* node = new_indexnode();
+index_node *new_indexnode_with_key(const int key)
+{
+  index_node *node = new_indexnode();
   node->key = key;
   return node;
 }
 
-void print_indexnode(const index_node* node) {
-  int* ptr = (int*)node;
+void print_indexnode(const index_node *node)
+{
+  int *ptr = (int *)node;
   unsigned int node_adr = (unsigned int)((uintptr_t)ptr & 0xFFFF);
-  if (node->next != NULL) {
-    ptr = (int*)node->next;
-    unsigned int temp = (unsigned int)((uintptr_t) ptr & 0xFFFF);    
-    printf("{%x -> offset:%d, key:%d, next:%x}", node_adr, node->offset, node->key, temp);  
-  } else {
-    printf("{%x -> offset:%d, key:%d, next:%p}", node_adr, node->offset, node->key, node->next);  
+  if (node->next != NULL)
+  {
+    ptr = (int *)node->next;
+    unsigned int temp = (unsigned int)((uintptr_t)ptr & 0xFFFF);
+    printf("{%x -> offset:%d, key:%d, next:%x}", node_adr, node->offset, node->key, temp);
+  }
+  else
+  {
+    printf("{%x -> offset:%d, key:%d, next:%p}", node_adr, node->offset, node->key, node->next);
   }
 }
 
-void free_indexnode(index_node* node) {
-  if (node->next) {
+void free_indexnode(index_node *node)
+{
+  if (node->next)
+  {
     free_indexnode(node->next);
   }
   free(node);
-} 
+}
 
-index_list* new_indexlist(void) {
-  index_list* indexlist = (index_list*)malloc(sizeof(index_list));
+index_list *new_indexlist(void)
+{
+  index_list *indexlist = (index_list *)malloc(sizeof(index_list));
   indexlist->size = 0;
   indexlist->head = NULL;
   return indexlist;
 }
 
-bool exists_key(index_list* indexlist, const int key) {
-  if (indexlist->head == NULL) return false;
-  index_node* curr =  indexlist->head;
-  while (curr != NULL) {
-    if (curr->key == key) return true;
+bool exists_key(index_list *indexlist, const int key)
+{
+  if (indexlist->head == NULL)
+    return false;
+  index_node *curr = indexlist->head;
+  while (curr != NULL)
+  {
+    if (curr->key == key)
+      return true;
     curr = curr->next;
   }
   return false;
 }
 
-bool insert_key(index_list* indexlist, const int key, int* offset) {
-  if (exists_key(indexlist, key)) return false;
+bool insert_key(index_list *indexlist, const int key, int *offset)
+{
+  if (exists_key(indexlist, key))
+    return false;
   *offset = 0;
-  index_node* new_node = new_indexnode_with_key(key);
-  if (indexlist->head == NULL) {
+  index_node *new_node = new_indexnode_with_key(key);
+  if (indexlist->head == NULL)
+  {
     indexlist->head = new_node;
     indexlist->head->offset = *offset;
-  } else {
+  }
+  else
+  {
     /* the index is sorted */
-    index_node* curr = indexlist->head, *prev = NULL;
-    while(curr != NULL && curr->key < key) {
+    index_node *curr = indexlist->head, *prev = NULL;
+    while (curr != NULL && curr->key < key)
+    {
       *offset = (*offset) + 1;
       prev = curr;
       curr = curr->next;
     }
-    if (prev == NULL) {
+    if (prev == NULL)
+    {
       /* make new node the head node */
       new_node->next = curr;
       indexlist->head = new_node;
-    } else if (curr == NULL) {
+    }
+    else if (curr == NULL)
+    {
       /* insert into the end */
       prev->next = new_node;
       new_node->next = NULL;
-    } else {
+    }
+    else
+    {
       /* insert somewhere in mid of the index */
       new_node->next = curr;
       prev->next = new_node;
     }
     new_node->offset = *offset;
-  } 
-  indexlist->size++; 
+  }
+  indexlist->size++;
   return true;
 }
 
-void print_indexlist(const index_list* indexlist) {
+void print_indexlist(const index_list *indexlist)
+{
   printf("[\n");
-  index_node* curr = indexlist->head;
-  while(curr != NULL) {
+  index_node *curr = indexlist->head;
+  while (curr != NULL)
+  {
     print_indexnode(curr);
     printf(",\n");
     curr = curr->next;
   }
   printf("]\n");
-} 
+}
 
-bool load_bin(index_list* indexlist, const char* filename, const size_t blocksize) {
-  if (indexlist == NULL) {
+bool load_bin(index_list *indexlist, const char *filename, const size_t blocksize)
+{
+  if (indexlist == NULL)
+  {
     fprintf(stderr, "load_bin: index list cannot be null");
     return false;
   }
 
   errno = 0;
-  FILE* bin_file_ptr = fopen(filename, "rb");
-  if (bin_file_ptr == NULL) {
+  FILE *bin_file_ptr = fopen(filename, "rb");
+  if (bin_file_ptr == NULL)
+  {
     perror("fopen:");
     return false;
   }
   // read until end of file
-  void* temp = malloc(sizeof(blocksize));
-  while(fread(temp, sizeof(blocksize), 1, bin_file_ptr) == 1) {
+  void *temp = malloc(sizeof(blocksize));
+  while (fread(temp, sizeof(blocksize), 1, bin_file_ptr) == 1)
+  {
     // read the dataitem blocks one by one
     // get the key and insert it
-    int* key = (int*)temp;
+    int *key = (int *)temp;
     int offset;
     insert_key(indexlist, *key, &offset);
   }
@@ -139,19 +170,25 @@ bool load_bin(index_list* indexlist, const char* filename, const size_t blocksiz
   return true;
 }
 
-int get_offset(index_list* indexlist, const int key) {
-  if (indexlist->head == NULL) return -1;
-  index_node* curr = indexlist->head;
-  while (curr != NULL) {
-    if (curr->key == key) {
+int get_offset(index_list *indexlist, const int key)
+{
+  if (indexlist->head == NULL)
+    return -1;
+  index_node *curr = indexlist->head;
+  while (curr != NULL)
+  {
+    if (curr->key == key)
+    {
       return curr->offset;
     }
-  }  
+  }
   return -1;
 }
 
-void free_indexlist(index_list* indexlist) {
-  if (indexlist->head) {
+void free_indexlist(index_list *indexlist)
+{
+  if (indexlist->head)
+  {
     free_indexnode(indexlist->head);
   }
   indexlist->size = 0;
