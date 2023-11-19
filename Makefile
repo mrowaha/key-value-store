@@ -8,10 +8,11 @@ TCOUNT=2
 
 CLICOUNT=2
 DLEVEL=1
+INPUT=./input/inputset
 
 VSIZE=10
 FNAME=./data/dataset
-MQNAME=mqueue
+MQNAME=/mqueue
 
 all: server-build client-build
 
@@ -28,10 +29,10 @@ client-build:
 	$(CC) ./client/*.c ./shared/*.c -o ./bin/clientk $(CFLAGS)
 
 client-run:
-	./clientk -f $(FNAME) -m $(MQNAME) -s $(VSIZE) -n $(CLICOUNT) -d $(DLEVEL)
+	./bin/clientk -f $(INPUT) -m $(MQNAME) -s $(VSIZE) -n $(CLICOUNT) -d $(DLEVEL)
 
 client-leak:
-	valgrind --leak-check=yes ./clientk -f $(FNAME) -m $(MQNAME) -s $(VSIZE) -n $(CLICOUNT) -d $(DLEVEL)
+	valgrind --leak-check=yes ./bin/clientk -f $(FNAME) -m $(MQNAME) -s $(VSIZE) -n $(CLICOUNT) -d $(DLEVEL)
 
 clean:
 	rm -f serverk clientk ./data/*
