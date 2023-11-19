@@ -31,7 +31,8 @@ typedef struct
   pthread_t *workerthreads;
   int *threadnumber;
   int workerthreadcount; /* connection pool size */
-
+  char *resp_mqname;
+  mqd_t responder;
 } server;
 
 typedef struct
@@ -46,8 +47,8 @@ static cmd_args *args;
 static server *appserver;
 // global current request
 static mq_request curr_request;
-pthread_mutex_t curr_requestmtx;
-pthread_cond_t curr_requestcond;
+static pthread_mutex_t curr_requestmtx;
+static pthread_cond_t curr_requestcond;
 
 server *new_server(cmd_args *args)
 {
@@ -64,6 +65,14 @@ server *new_server(cmd_args *args)
   newserver->idxbuilder = new_indexbuilder(newserver->dbmng);
   newserver->parser = new_message_parser(args->vsize);
   newserver->connection.mqname = args->mqname;
+  newserver->resp_mqname = (char *)malloc(sizeof(args->mqname) + sizeof("-resp"));
+  sprintf(newserver->resp_mqname, "%s-resp", args->mqname);
+  newserver->responder = mq_open(newserver->resp_mqname, O_WRONLY | O_CREAT, 0666, NULL);
+  if (newserver->responder == -1)
+  {
+    perror("new_server");
+    exit(1);
+  }
 
   newserver->workerthreadcount = args->tcount;
   newserver->workerthreads = (pthread_t *)malloc(sizeof(pthread_t) * args->tcount);
@@ -130,12 +139,12 @@ void begin_serverloop(server *server)
     }
 
 #ifdef DEBUG
-    printf("key: %d, method: %s, value: %s\n",
+    printf("[main server] key: %d, method: %s, value: %s\n",
            curr_request.key,
            method_int_to_str(curr_request.method),
            curr_request.value);
 #endif
-
+    curr_request.isnew = true;
     pthread_mutex_unlock(&curr_requestmtx);
     pthread_cond_signal(&curr_requestcond);
 
@@ -148,6 +157,8 @@ void *responserunner(void *workerargs)
 {
   int number = (*(int *)workerargs) + 1;
   mq_request thread_request;
+  message_parser *parser = appserver->parser;
+  size_t resp_msgsize = get_response_msg_size(parser);
   while (true)
   {
     pthread_mutex_lock(&curr_requestmtx);
@@ -172,15 +183,44 @@ void *responserunner(void *workerargs)
     }
     curr_request.isnew = false;
     pthread_mutex_unlock(&curr_requestmtx);
+    // handle request
+    switch (thread_request.method)
+    {
+    case (PUT_int):
+      // handles the put request
+      // if the key already exists
+      // then the value is updated
+      // else a new value is created
+      break;
+    case (GET_int):
 
-// handle request
+      break;
+    case (DEL_int):
+
+      break;
+    }
+// done handling request
 #ifdef DEBUG
-    printf("key: %d, method: %s, value: %s\n",
+    printf("[worker] key: %d, method: %s, value: %s\n",
            thread_request.key,
            method_int_to_str(thread_request.method),
            thread_request.value);
 #endif
 
+    // write request back
+    bool success = true;
+    void *bufferp = new_response_msg(
+        parser,
+        success,
+        thread_request.value);
+
+    ssize_t n;
+    n = mq_send(appserver->responder, bufferp, resp_msgsize, 0);
+    if (n == -1)
+    {
+      perror("mq_send");
+    }
+    free(bufferp);
     free(thread_request.value);
     thread_request.value = NULL;
   }
@@ -214,6 +254,7 @@ void free_server(server *server)
     free_datasetmng(server->dbmng);
     free(server->workerthreads);
     free(server->threadnumber);
+    free(server->resp_mqname);
     free(server);
     printf("\n*****server exiting*****\n");
   }

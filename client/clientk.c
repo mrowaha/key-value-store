@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <mqueue.h>
@@ -10,14 +11,17 @@
 typedef struct
 {
   char *mqname;
-  mqd_t sender;
+  mqd_t mq;
   struct mq_attr attrs;
+  int bufferlen;
+  void *bufferp;
 } connection;
 
 typedef struct
 {
   message_parser *parser;
-  connection connection;
+  connection sender;
+  connection receiver;
   pthread_t *workerthreads;
   int *threadnumber;
   int workerthreadcount;
@@ -25,7 +29,7 @@ typedef struct
 
 cmd_args *process_args;
 client *appclient;
-pthread_mutex_t messagemtx;
+pthread_mutex_t request_mtx;
 
 client *new_client(cmd_args *args)
 {
@@ -37,10 +41,13 @@ client *new_client(cmd_args *args)
 
   client *newclient = (client *)malloc(sizeof(client));
   newclient->parser = new_message_parser(args->vsize);
-  newclient->connection.mqname = args->mqname;
+  newclient->sender.mqname = args->mqname;
+
   newclient->workerthreadcount = args->clicount;
   newclient->workerthreads = (pthread_t *)malloc(sizeof(pthread_t) * args->clicount);
   newclient->threadnumber = (int *)malloc(sizeof(int) * args->clicount);
+
+  pthread_mutex_init(&request_mtx, NULL);
   return newclient;
 }
 
@@ -48,7 +55,8 @@ void free_client(client *appclient)
 {
   if (appclient)
   {
-    mq_close(appclient->connection.sender);
+    pthread_mutex_destroy(&request_mtx);
+    mq_close(appclient->sender.mq);
     free_message_parser(appclient->parser);
     free(appclient->workerthreads);
     free(appclient->threadnumber);
@@ -56,36 +64,60 @@ void free_client(client *appclient)
   }
 }
 
-void open_sendconnection(client *appclient)
+void open_connections(client *appclient)
 {
-  connection *connection = &(appclient)->connection;
-  connection->sender = mq_open(connection->mqname, O_RDWR);
-  if (connection->sender == -1)
+  connection *sending = &(appclient)->sender;
+  sending->mq = mq_open(sending->mqname, O_RDWR);
+  if (sending->mq == -1)
   {
     perror("mq_open");
     exit(1);
   }
+
+  char *mqname_rec = (char *)malloc(sizeof(sending->mqname) + sizeof("-resp"));
+  sprintf(mqname_rec, "%s-resp", sending->mqname);
+  connection *receiving = &(appclient)->receiver;
+  receiving->mqname = mqname_rec;
+  receiving->mq = mq_open(receiving->mqname, O_RDONLY);
+  if (sending->mq == -1)
+  {
+    perror("mq_open");
+    exit(1);
+  }
+
+  mq_getattr(receiving->mq, &(receiving->attrs));
+  int bufferlen = receiving->attrs.mq_msgsize;
+  void *bufferp = malloc(bufferlen);
+  receiving->bufferlen = bufferlen;
+  receiving->bufferp = bufferp;
 }
 
 void send_message(int key, int method, char *value)
 {
-  pthread_mutex_lock(&messagemtx);
-  connection *connection = &(appclient)->connection;
+  connection *connection = &(appclient)->sender;
   size_t requestmsg_size = get_request_msg_size(appclient->parser);
   ssize_t n;
-  mq_getattr(connection->sender, &(connection->attrs));
+  mq_getattr(connection->mq, &(connection->attrs));
 
   void *bufferp = new_request_msg(appclient->parser, key, method, value);
-  n = mq_send(connection->sender, bufferp, requestmsg_size, 0);
+  n = mq_send(connection->mq, bufferp, requestmsg_size, 0);
   if (n == -1)
   {
     free(bufferp);
     perror("mq_send");
-    pthread_mutex_unlock(&messagemtx);
     exit(1);
   }
   free(bufferp);
-  pthread_mutex_unlock(&messagemtx);
+  n = mq_receive(appclient->receiver.mq, appclient->receiver.bufferp, appclient->receiver.bufferlen, NULL);
+  if (n == -1)
+  {
+    perror("mq_send");
+    exit(1);
+  }
+  bool success;
+  char *respvalue = decode_response_msg(appclient->parser, appclient->receiver.bufferp, &success);
+  printf("success: %d\n", success);
+  printf("value: %s\n", respvalue);
 }
 
 void *requestrunner(void *threadargs)
@@ -121,7 +153,9 @@ void *requestrunner(void *threadargs)
       token = strtok(NULL, " "); // get value
       value = token;
     }
+    pthread_mutex_lock(&request_mtx);
     send_message(key, method, value);
+    pthread_mutex_unlock(&request_mtx);
   }
   free(line);
   fclose(infile);
@@ -130,7 +164,6 @@ void *requestrunner(void *threadargs)
 
 void begin_workerthreads(client *appclient)
 {
-  pthread_mutex_init(&messagemtx, NULL);
   int ret;
   for (int i = 0; i < appclient->workerthreadcount; i++)
   {
@@ -158,11 +191,10 @@ int main(const int argc, const char *argv[])
   }
 
   appclient = new_client(process_args);
-  open_sendconnection(appclient);
+  open_connections(appclient);
   begin_workerthreads(appclient);
 
   free_client(appclient);
   free_cmdargs(process_args);
-  pthread_mutex_destroy(&messagemtx);
   return EXIT_SUCCESS;
 }

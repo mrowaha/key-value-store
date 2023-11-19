@@ -173,6 +173,8 @@ void *new_response_msg(const message_parser *parser, const bool success, const c
     memset(msg->value, '\0', vsize);
   }
 
+  printf("success %d\n", msg->success);
+  printf("value: %s\n", msg->value);
   return (void *)msg;
 }
 
