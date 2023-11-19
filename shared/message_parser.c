@@ -144,7 +144,7 @@ void *new_request_msg(const message_parser *parser, const int key, const int met
   memcpy(returnmsg, &msg, sizeof(msg));
 #ifdef DEBUG
   request_msg *check = (request_msg *)returnmsg;
-  printf("key: %d\n", check->key);
+  printf("[request] key: %d\n", check->key);
   printf("method: %d\n", check->method);
   printf("value: %s\n", check->value);
 #endif
@@ -173,8 +173,7 @@ void *new_response_msg(const message_parser *parser, const bool success, const c
     memset(msg->value, '\0', vsize);
   }
 
-  printf("success %d\n", msg->success);
-  printf("value: %s\n", msg->value);
+  printf("[response] success: %d, value: %s\n", msg->success, msg->value);
   return (void *)msg;
 }
 

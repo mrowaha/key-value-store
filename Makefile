@@ -17,7 +17,7 @@ MQNAME=/mqueue
 all: server-build client-build
 
 server-build: 
-	$(CC) ./server/*.c ./shared/*.c -o ./bin/serverk $(CFLAGS) $(SFLAGS)
+	$(CC) ./server/*.c ./shared/*.c -o ./serverk $(CFLAGS) $(SFLAGS)
 
 server-run:
 	./bin/serverk -d $(DCOUNT) -t $(TCOUNT) -s $(VSIZE) -m $(MQNAME) -f $(FNAME)
@@ -26,13 +26,16 @@ server-leak:
 	valgrind --leak-check=yes ./bin/serverk -d $(DCOUNT) -t $(TCOUNT) -s $(VSIZE) -m $(MQNAME) -f $(FNAME)
 
 client-build:
-	$(CC) ./client/*.c ./shared/*.c -o ./bin/clientk $(CFLAGS)
+	$(CC) ./client/*.c ./shared/*.c -o ./clientk $(CFLAGS)
 
 client-run:
 	./bin/clientk -f $(INPUT) -m $(MQNAME) -s $(VSIZE) -n $(CLICOUNT) -d $(DLEVEL)
+
+client-run-t:
+	./bin/clientk -f $(INPUT) -m $(MQNAME) -s $(VSIZE) -n 0 -d $(DLEVEL)
 
 client-leak:
 	valgrind --leak-check=yes ./bin/clientk -f $(FNAME) -m $(MQNAME) -s $(VSIZE) -n $(CLICOUNT) -d $(DLEVEL)
 
 clean:
-	rm -f serverk clientk ./data/*
+	rm -f ./bin/serverk ./bin/clientk ./data/*

@@ -33,6 +33,7 @@ typedef struct
   int workerthreadcount; /* connection pool size */
   char *resp_mqname;
   mqd_t responder;
+  pthread_mutex_t *transactional_mtx;
 } server;
 
 typedef struct
@@ -80,6 +81,13 @@ server *new_server(cmd_args *args)
 
   pthread_mutex_init(&curr_requestmtx, NULL);
   pthread_cond_init(&curr_requestcond, NULL);
+
+  newserver->transactional_mtx = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * args->dcount);
+  for (int i = 0; i < args->dcount; i++)
+  {
+    pthread_mutex_init(&(newserver->transactional_mtx[i]), NULL);
+  }
+
   return newserver;
 }
 
@@ -184,6 +192,16 @@ void *responserunner(void *workerargs)
     curr_request.isnew = false;
     pthread_mutex_unlock(&curr_requestmtx);
     // handle request
+
+    // use transactional mutexes on atomic operations
+    // such as dataset writes and index updates
+    bool success = true; // optimistic update
+    char *value = NULL;
+    int transactional_idx = (thread_request.key % args->dcount);
+    pthread_mutex_lock(&(appserver->transactional_mtx[transactional_idx]));
+    index_builder *idxbuilder = appserver->idxbuilder;
+    dataset_mng *dbmng = appserver->dbmng;
+    dataset_offset result;
     switch (thread_request.method)
     {
     case (PUT_int):
@@ -191,14 +209,65 @@ void *responserunner(void *workerargs)
       // if the key already exists
       // then the value is updated
       // else a new value is created
+      bool status;
+      result = getb_offset(idxbuilder, thread_request.key, &status);
+      if (status)
+      {
+        // value exists, update
+        int dataset;
+        update_dataitem(dbmng, thread_request.key, thread_request.value, result.offset, &dataset);
+      }
+      else
+      {
+        // value does not exist, add to dataset
+        // and update idxbuilder accordingly
+        int dataset;
+        write_dataitem(dbmng, thread_request.key, thread_request.value, &dataset);
+        result = insertb_key(idxbuilder, thread_request.key);
+      }
       break;
     case (GET_int):
-
+      result = getb_offset(idxbuilder, thread_request.key, &status);
+      printf("offset %d, dataset: %d\n", result.offset, result.dataset);
+      if (status)
+      {
+        // value exists, return value
+        success = true;
+        int key = 0;
+        char tempvalue[args->vsize];
+        get_value_by_offset(dbmng, result.dataset, result.offset, tempvalue, &key);
+        printf(" %d : %s (vsize %ld)\n", key, tempvalue, sizeof(tempvalue));
+        value = (char *)malloc(sizeof(tempvalue));
+        strcpy(value, tempvalue);
+        // ignores key
+      }
+      else
+      {
+        success = false;
+        value = NULL;
+      }
       break;
     case (DEL_int):
-
+      // if it does not exist error
+      // delete by offset in dataset
+      // delete in the index list
+      bool exists;
+      result = getb_offset(idxbuilder, thread_request.key, &exists);
+      if (!exists)
+      {
+        success = false;
+        value = NULL;
+      }
+      else
+      {
+        delete_dataitem(dbmng, thread_request.key, result.offset, result.dataset);
+        printb_indexlist(idxbuilder, thread_request.key);
+        success = true;
+        value = NULL;
+      }
       break;
     }
+    pthread_mutex_unlock(&(appserver->transactional_mtx[transactional_idx]));
 // done handling request
 #ifdef DEBUG
     printf("[worker] key: %d, method: %s, value: %s\n",
@@ -208,11 +277,10 @@ void *responserunner(void *workerargs)
 #endif
 
     // write request back
-    bool success = true;
     void *bufferp = new_response_msg(
         parser,
         success,
-        thread_request.value);
+        value);
 
     ssize_t n;
     n = mq_send(appserver->responder, bufferp, resp_msgsize, 0);
@@ -222,6 +290,8 @@ void *responserunner(void *workerargs)
     }
     free(bufferp);
     free(thread_request.value);
+    if (value != NULL)
+      free(value);
     thread_request.value = NULL;
   }
 }
@@ -246,6 +316,10 @@ void free_server(server *server)
 {
   if (server != NULL)
   {
+    for (int i = 0; i < args->dcount; i++)
+    {
+      pthread_mutex_destroy(&(server->transactional_mtx[i]));
+    }
     pthread_mutex_destroy(&curr_requestmtx);
     pthread_cond_destroy(&curr_requestcond);
     mq_close(server->connection.receiver);
@@ -288,5 +362,8 @@ int main(const int argc, const char *argv[])
   open_serverconnections(appserver);
   make_connectionpool(appserver);
   begin_serverloop(appserver);
+
+  free_server(appserver);
+  free_cmdargs(args);
   return EXIT_SUCCESS;
 }

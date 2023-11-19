@@ -8,6 +8,8 @@
 #include "message_parser.h"
 #include "clientk_args.h"
 
+#define DEBUG
+
 typedef struct
 {
   char *mqname;
@@ -17,6 +19,12 @@ typedef struct
   void *bufferp;
 } connection;
 
+enum MODE
+{
+  SPEC,
+  TERMINAL
+};
+
 typedef struct
 {
   message_parser *parser;
@@ -25,6 +33,7 @@ typedef struct
   pthread_t *workerthreads;
   int *threadnumber;
   int workerthreadcount;
+  enum MODE mode;
 } client;
 
 cmd_args *process_args;
@@ -40,14 +49,20 @@ client *new_client(cmd_args *args)
   }
 
   client *newclient = (client *)malloc(sizeof(client));
+  newclient->mode = SPEC;
   newclient->parser = new_message_parser(args->vsize);
   newclient->sender.mqname = args->mqname;
 
   newclient->workerthreadcount = args->clicount;
   newclient->workerthreads = (pthread_t *)malloc(sizeof(pthread_t) * args->clicount);
   newclient->threadnumber = (int *)malloc(sizeof(int) * args->clicount);
-
   pthread_mutex_init(&request_mtx, NULL);
+
+  if (process_args->clicount == 0)
+  {
+    newclient->mode = TERMINAL;
+  }
+
   return newclient;
 }
 
@@ -182,6 +197,55 @@ void begin_workerthreads(client *appclient)
   }
 }
 
+void printmenu()
+{
+  printf("***MAKE REQUESTS***\n");
+  printf("PUT [key] [value]\n");
+  printf("GET [key]\n");
+  printf("DEL [key]\n");
+}
+
+void begin_terminalinput(client *appclient)
+{
+
+  printf("Client is running in terminal mode\n");
+  char input[sizeof(char) * process_args->vsize + sizeof(QUITSERVER) + sizeof(int)];
+  while (strcmp(input, "QUIT") != 0)
+  {
+    printmenu();
+    printf("input: ");
+    fgets(input, sizeof(input), stdin);
+
+    if (strcmp(input, "QUIT") == 0)
+      break;
+    ;
+
+    int len = strlen(input);
+    if (len > 0 && input[len - 1] == '\n')
+    {
+      input[len - 1] = '\0';
+    }
+    printf("%s\n", input);
+    char *token;
+
+    int method;
+    int key;
+    char *value;
+
+    value = NULL;
+    token = strtok(input, " "); // get method
+    method = method_str_to_int(token);
+    token = strtok(NULL, " "); // get key
+    key = atoi(token);
+    if (token != NULL)
+    {
+      token = strtok(NULL, " "); // get value
+      value = token;
+    }
+    send_message(key, method, value);
+  }
+}
+
 int main(const int argc, const char *argv[])
 {
   process_args = new_cmdargs();
@@ -192,7 +256,14 @@ int main(const int argc, const char *argv[])
 
   appclient = new_client(process_args);
   open_connections(appclient);
-  begin_workerthreads(appclient);
+  if (appclient->mode == SPEC)
+  {
+    begin_workerthreads(appclient);
+  }
+  else
+  {
+    begin_terminalinput(appclient);
+  }
 
   free_client(appclient);
   free_cmdargs(process_args);

@@ -127,6 +127,43 @@ bool insert_key(index_list *indexlist, const int key, int *offset)
   return true;
 }
 
+bool delete_key(index_list *indexlist, const int key)
+{
+  if (indexlist == NULL || indexlist->head == NULL)
+  {
+    return false;
+  }
+
+  if (!exists_key(indexlist, key))
+  {
+    return false;
+  }
+
+  index_node *curr = indexlist->head, *prev = NULL;
+  while (curr != NULL)
+  {
+    if (curr->key == key)
+    {
+      index_node *temp = curr;
+      if (prev == NULL)
+      {
+        indexlist->head = curr->next;
+      }
+      else
+      {
+        prev->next = curr->next;
+      }
+      temp->next = NULL;
+      free(temp);
+      return true;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+
+  return false;
+}
+
 void print_indexlist(const index_list *indexlist)
 {
   printf("[\n");

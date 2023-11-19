@@ -6,6 +6,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #include "index_list.h"
 
@@ -33,6 +34,7 @@ typedef struct dataset_mng
   int *descriptors;
   int *sizes;
   void **mmaps;
+  pthread_t *datasetlocks;
 } dataset_mng;
 
 dataset_mng *new_datasetmng(const char *fname, const int dcount, const size_t vsize);
@@ -50,6 +52,10 @@ void make_datasets(const dataset_mng *);
  * does not check existence of the key
  */
 bool write_dataitem(const dataset_mng *, const int key, const char *value, int *dataset);
+
+bool update_dataitem(const dataset_mng *, const int key, const char *value, const int offset, int *dataset);
+
+bool delete_dataitem(const dataset_mng *, const int key, const int offset, int dataset);
 
 /**
  * print file content (key value pair of the datastore)

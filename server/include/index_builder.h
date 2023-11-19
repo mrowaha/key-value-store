@@ -34,4 +34,11 @@ typedef struct
 
 dataset_offset getb_offset(index_builder *, const int key, bool *status);
 
+/**
+ * caller must ensure that the key does not exist using getb_offset
+ */
+dataset_offset insertb_key(index_builder *, const int key);
+
+dataset_offset deleteb_key(index_builder *, const int key);
+
 #endif

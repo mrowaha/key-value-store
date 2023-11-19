@@ -2,6 +2,7 @@
   "files.associations": {
     "semaphore.h": "c",
     "serverk_args.h": "c",
-    "dataset_mng.h": "c"
+    "dataset_mng.h": "c",
+    "random": "c"
   }
 }

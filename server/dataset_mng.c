@@ -12,7 +12,7 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
 // enable to log debugs to console
-// #define DEBUG
+#define DEBUG
 
 dataset_mng *new_datasetmng(const char *fname, const int dcount, const size_t vsize)
 {
@@ -80,7 +80,6 @@ void make_datasets(const dataset_mng *dbmng)
   for (int i = 1; i <= dbmng->dcount; i++)
   {
     sprintf(filename, "%s%d.bin", dbmng->fname, i);
-    // int fd = open(filename, O_RDWR | O_CREAT);
     FILE *file = fopen(filename, "r+b");
     if (file == NULL)
     {
@@ -236,4 +235,56 @@ void get_value_by_offset(const dataset_mng *dbmng, const int dataset, int offset
   strncpy(value, item.value, dbmng->vsize);
   value[dbmng->vsize - 1] = '\0';
   *key = item.key;
+}
+
+bool update_dataitem(const dataset_mng *dbmng, const int key, const char *value, const int offset, int *dataset)
+{
+  if (key <= 0)
+  {
+    fprintf(stderr, "update_dataitem: key can only be a positive nonzero integer");
+    return false;
+  }
+
+  struct dataitem
+  {
+    int key;
+    char value[dbmng->vsize];
+  };
+
+  int filenumber = (key % dbmng->dcount) + 1;
+  struct dataitem item;
+  item.key = key;
+  memset(item.value, '\0', dbmng->vsize);
+  strncpy(item.value, value, min(dbmng->vsize, strlen(value)));
+  item.value[dbmng->vsize - 1] = '\0';
+
+  struct dataitem *currmap = dbmng->mmaps[filenumber - 1];
+  currmap[offset] = item;
+  *dataset = filenumber;
+  return true;
+}
+
+bool delete_dataitem(const dataset_mng *dbmng, const int key, const int offset, int dataset)
+{
+  struct dataitem
+  {
+    int key;
+    char value[dbmng->vsize];
+  };
+
+  int filenumber = (key % dbmng->dcount) + 1;
+  struct dataitem *currmap = dbmng->mmaps[filenumber - 1];
+  memmove(currmap + offset, currmap + offset + 1, sizeof(struct dataitem));
+
+  int fd = dbmng->descriptors[filenumber - 1];
+  int old_length = dbmng->sizes[filenumber - 1] / sizeof(struct dataitem);
+  int new_length = old_length - 1;
+  size_t new_size = new_length * sizeof(struct dataitem);
+  if (ftruncate(fd, new_size) == -1)
+  {
+    perror("ftruncate");
+    return false;
+  }
+  dbmng->sizes[filenumber - 1] = new_size;
+  return true;
 }

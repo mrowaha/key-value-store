@@ -77,12 +77,33 @@ void printb_indexlist(index_builder *idxbuilder, const unsigned int idxlist)
 
 dataset_offset getb_offset(index_builder *idxbuilder, const int key, bool *status)
 {
-
   int indexlist_idx = (key % idxbuilder->idxlistcount);
   int offset = get_offset(idxbuilder->indexlists[indexlist_idx], key);
   *status = offset != -1;
   dataset_offset returnval;
   returnval.offset = offset;
   returnval.dataset = indexlist_idx + 1;
+  return returnval;
+}
+
+dataset_offset insertb_key(index_builder *idxbuilder, const int key)
+{
+  int indexlist_idx = (key % idxbuilder->idxlistcount);
+  int offset;
+  insert_key(idxbuilder->indexlists[indexlist_idx], key, &offset);
+  dataset_offset returnval;
+  returnval.offset = offset;
+  returnval.dataset = indexlist_idx + 1;
+  return returnval;
+}
+
+dataset_offset deleteb_key(index_builder *idxbuilder, const int key)
+{
+  int indexlist_idx = (key % idxbuilder->idxlistcount);
+  int offset = get_offset(idxbuilder->indexlists[indexlist_idx], key);
+  dataset_offset returnval;
+  returnval.offset = offset;
+  returnval.dataset = indexlist_idx + 1;
+  delete_key(idxbuilder->indexlists[indexlist_idx], key);
   return returnval;
 }

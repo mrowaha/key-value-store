@@ -28,6 +28,8 @@ index_list *new_indexlist(void);
  */
 bool insert_key(index_list *indexlist, const int key, int *offset);
 
+bool delete_key(index_list *indexlist, const int key);
+
 /**
  * get offset of the key
  * @return key offset or -1 if key does not exist
