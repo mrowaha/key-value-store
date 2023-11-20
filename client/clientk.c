@@ -144,7 +144,7 @@ void *requestrunner(void *threadargs)
   if (infile == NULL)
   {
     perror("requestrunner");
-    exit(1);
+    return NULL;
   }
 
   char *line = NULL;

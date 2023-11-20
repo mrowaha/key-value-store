@@ -6,7 +6,7 @@ SFLAGS=-I./server/include
 DCOUNT=5
 TCOUNT=2
 
-CLICOUNT=2
+CLICOUNT=3
 DLEVEL=1
 INPUT=./input/inputset
 
