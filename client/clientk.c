@@ -131,8 +131,7 @@ void send_message(int key, int method, char *value)
   }
   bool success;
   char *respvalue = decode_response_msg(appclient->parser, appclient->receiver.bufferp, &success);
-  printf("success: %d\n", success);
-  printf("value: %s\n", respvalue);
+  printf("[response] success: %d, value : %s\n", success, respvalue);
 }
 
 void *requestrunner(void *threadargs)
@@ -199,50 +198,56 @@ void begin_workerthreads(client *appclient)
 
 void printmenu()
 {
-  printf("***MAKE REQUESTS***\n");
-  printf("PUT [key] [value]\n");
-  printf("GET [key]\n");
-  printf("DEL [key]\n");
+  printf("*****<OPTIONS>*****\n");
+  printf("PUT [key] [value] --> add key-value pair\n");
+  printf("GET [key] --> get value of key if exists else nothing\n");
+  printf("DEL [key] --> delete a key value pair if the key exists\n");
+  printf("server responds with the success status and value for the GET op\n");
+  printf("*******************\n");
 }
 
 void begin_terminalinput(client *appclient)
 {
 
   printf("Client is running in terminal mode\n");
-  char input[sizeof(char) * process_args->vsize + sizeof(QUITSERVER) + sizeof(int)];
-  while (strcmp(input, "QUIT") != 0)
+  char input[sizeof(char) * process_args->vsize + 100];
+  printf("input (type OPTIONS for commands, QUIT to end): ");
+  fgets(input, sizeof(input), stdin);
+  while (strcmp(input, "QUIT\n") != 0)
   {
-    printmenu();
-    printf("input: ");
+
+    if (strcmp(input, "OPTIONS\n") == 0)
+    {
+      printmenu();
+    }
+    else
+    {
+      int len = strlen(input);
+      if (len > 0 && input[len - 1] == '\n')
+      {
+        input[len - 1] = '\0';
+      }
+      char *token;
+
+      int method;
+      int key;
+      char *value;
+
+      value = NULL;
+      token = strtok(input, " "); // get method
+      method = method_str_to_int(token);
+      token = strtok(NULL, " "); // get key
+      key = atoi(token);
+      if (token != NULL)
+      {
+        token = strtok(NULL, " "); // get value
+        value = token;
+      }
+      send_message(key, method, value);
+    }
+
+    printf("input (type OPTIONS for commands, QUIT to end): ");
     fgets(input, sizeof(input), stdin);
-
-    if (strcmp(input, "QUIT") == 0)
-      break;
-    ;
-
-    int len = strlen(input);
-    if (len > 0 && input[len - 1] == '\n')
-    {
-      input[len - 1] = '\0';
-    }
-    printf("%s\n", input);
-    char *token;
-
-    int method;
-    int key;
-    char *value;
-
-    value = NULL;
-    token = strtok(input, " "); // get method
-    method = method_str_to_int(token);
-    token = strtok(NULL, " "); // get key
-    key = atoi(token);
-    if (token != NULL)
-    {
-      token = strtok(NULL, " "); // get value
-      value = token;
-    }
-    send_message(key, method, value);
   }
 }
 

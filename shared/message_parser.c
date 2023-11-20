@@ -2,7 +2,8 @@
 #include <string.h>
 #include "message_parser.h"
 
-#define DEBUG
+// #define PRINT_REQUEST // uncomment to print generated request message
+#define PRINT_RESPONSE // uncomment to print generated response message
 
 typedef struct message_parser
 {
@@ -142,7 +143,7 @@ void *new_request_msg(const message_parser *parser, const int key, const int met
   }
   void *returnmsg = malloc(sizeof(msg));
   memcpy(returnmsg, &msg, sizeof(msg));
-#ifdef DEBUG
+#ifdef PRINT_REQUEST
   request_msg *check = (request_msg *)returnmsg;
   printf("[request] key: %d\n", check->key);
   printf("method: %d\n", check->method);
@@ -172,8 +173,9 @@ void *new_response_msg(const message_parser *parser, const bool success, const c
   {
     memset(msg->value, '\0', vsize);
   }
-
+#ifdef PRINT_RESPONSE
   printf("[response] success: %d, value: %s\n", msg->success, msg->value);
+#endif
   return (void *)msg;
 }
 
